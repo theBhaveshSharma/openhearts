@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OpenHearts
 
-## Getting Started
+A peer support social app where people can anonymously share their thoughts, feelings, and life struggles — and receive encouragement from a caring community.
 
-First, run the development server:
+**OpenHearts is not therapy, medical advice, or emergency mental health care.** If you or someone you know is in crisis, please use the [crisis resources](https://988lifeline.org) linked in the app.
+
+## Features
+
+- **Anonymous sharing** — Auto-generated usernames, no account required
+- **Mood-tagged posts** — Share how you're feeling (anxious, sad, lonely, hopeful, and more)
+- **Peer support** — React with love, virtual hugs, and encouragement
+- **Replies** — Leave kind words on posts that resonate with you
+- **Crisis resources** — Prominent disclaimers and links to 988, Crisis Text Line, and international helplines
+- **Mood filtering** — Browse the feed by how people are feeling
+
+## Tech stack
+
+- [Next.js 16](https://nextjs.org/) (App Router)
+- [React 19](https://react.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS 4](https://tailwindcss.com/)
+- [Lucide React](https://lucide.dev/) icons
+- Browser `localStorage` for MVP data persistence
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20+
+- npm
+
+### Install and run
 
 ```bash
+git clone https://github.com/YOUR_USERNAME/openhearts.git
+cd openhearts
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command        | Description              |
+| -------------- | ------------------------ |
+| `npm run dev`  | Start development server |
+| `npm run build`| Create production build  |
+| `npm run start`| Run production server    |
+| `npm run lint` | Run ESLint               |
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── page.tsx          # Landing page
+│   ├── feed/page.tsx     # Community feed
+│   ├── post/[id]/page.tsx# Post detail & replies
+│   └── resources/page.tsx# Crisis resources
+├── components/           # UI components
+└── lib/
+    ├── types.ts          # Shared types
+    ├── store.ts          # Local storage layer
+    ├── anonymous.ts      # Anonymous name generator
+    └── crisis.ts         # Crisis resource data
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This app works well on [Vercel](https://vercel.com):
 
-## Deploy on Vercel
+1. Push this repo to GitHub
+2. Import the repository on Vercel
+3. Deploy (no extra configuration needed)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+GitHub Pages is possible but requires static export and extra routing setup — Vercel is recommended for Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Important note
+
+This is an MVP built for learning and prototyping. A production mental health peer support platform would need:
+
+- A real backend and database
+- User authentication and moderation
+- Content reporting and safety tooling
+- Crisis keyword detection
+- Legal review and community guidelines
+- Professional oversight for safety workflows
+
+## License
+
+MIT
