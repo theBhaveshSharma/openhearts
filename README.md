@@ -32,7 +32,7 @@ A peer support social app where people can anonymously share their thoughts, fee
 ### Install and run
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/openhearts.git
+git clone https://github.com/theBhaveshSharma/openhearts.git
 cd openhearts
 npm install
 npm run dev
