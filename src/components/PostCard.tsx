@@ -41,7 +41,7 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
       <div className="flex items-center justify-between gap-3 pt-3 border-t border-violet-50">
         <SupportButtons postId={post.id} support={post.support} onUpdate={onUpdate} />
         <Link
-          href={`/post/${post.id}`}
+          href={`/post/?id=${post.id}`}
           className="flex items-center gap-1 text-sm text-violet-500 hover:text-violet-700 transition-colors shrink-0"
         >
           <MessageCircle className="h-4 w-4" />

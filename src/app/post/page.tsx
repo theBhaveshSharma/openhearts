@@ -15,12 +15,12 @@ import {
 import { MOOD_CONFIG } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
-export default function PostPage() {
-  const params = useParams();
-  const id = params.id as string;
+function PostContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id") ?? "";
   const [ready, setReady] = useState(false);
   const [userName, setUserName] = useState("");
   const [post, setPost] = useState<ReturnType<typeof getPost>>(undefined);
@@ -36,12 +36,13 @@ export default function PostPage() {
       setUser(user);
     }
     setUserName(user.anonymousName);
-    setPost(getPost(id));
-    setComments(getComments(id));
+    setPost(id ? getPost(id) : undefined);
+    setComments(id ? getComments(id) : []);
     setReady(true);
   }, [id]);
 
   function refresh() {
+    if (!id) return;
     setPost(getPost(id));
     setComments(getComments(id));
   }
@@ -58,7 +59,7 @@ export default function PostPage() {
     return (
       <div className="flex flex-col flex-1 items-center justify-center min-h-screen gap-4">
         <p className="text-violet-600">Post not found.</p>
-        <Link href="/feed" className="text-sm font-medium text-violet-600 underline">
+        <Link href="/feed/" className="text-sm font-medium text-violet-600 underline">
           Back to feed
         </Link>
       </div>
@@ -73,7 +74,7 @@ export default function PostPage() {
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 space-y-5">
         <Link
-          href="/feed"
+          href="/feed/"
           className="inline-flex items-center gap-1.5 text-sm text-violet-500 hover:text-violet-700 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -119,5 +120,19 @@ export default function PostPage() {
         <CrisisBanner compact />
       </main>
     </div>
+  );
+}
+
+export default function PostPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-1 items-center justify-center min-h-screen">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-200 border-t-violet-600" />
+        </div>
+      }
+    >
+      <PostContent />
+    </Suspense>
   );
 }

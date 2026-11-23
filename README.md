@@ -66,15 +66,30 @@ src/
     └── crisis.ts         # Crisis resource data
 ```
 
+## Live site
+
+Hosted on GitHub Pages:
+
+**https://thebhaveshsharma.github.io/openhearts/**
+
 ## Deployment
 
-This app works well on [Vercel](https://vercel.com):
+Every push to `main` builds a static export and deploys via GitHub Actions (`.github/workflows/deploy.yml`).
 
-1. Push this repo to GitHub
-2. Import the repository on Vercel
-3. Deploy (no extra configuration needed)
+### Enable GitHub Pages (one-time)
 
-GitHub Pages is possible but requires static export and extra routing setup — Vercel is recommended for Next.js.
+1. Open [repo Settings → Pages](https://github.com/theBhaveshSharma/openhearts/settings/pages)
+2. Under **Build and deployment → Source**, choose **GitHub Actions**
+3. Push to `main` (or re-run the **Deploy to GitHub Pages** workflow)
+
+### Local production build (same as Pages)
+
+```bash
+GITHUB_PAGES=true npm run build
+npx serve out
+```
+
+You can also deploy the same Next.js app on [Vercel](https://vercel.com) if you prefer a server runtime.
 
 ## Important note
 
