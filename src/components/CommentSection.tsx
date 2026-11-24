@@ -6,25 +6,33 @@ import { useState } from "react";
 
 interface CommentSectionProps {
   postId: string;
+  authorId: string;
   authorName: string;
   comments: { id: string; author: string; content: string; createdAt: string }[];
-  onUpdate: () => void;
+  onUpdate: () => void | Promise<void>;
 }
 
 export function CommentSection({
   postId,
+  authorId,
   authorName,
   comments,
   onUpdate,
 }: CommentSectionProps) {
   const [content, setContent] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!content.trim()) return;
-    addComment(postId, authorName, content.trim());
-    setContent("");
-    onUpdate();
+    if (!content.trim() || busy) return;
+    setBusy(true);
+    try {
+      await addComment(postId, authorId, authorName, content.trim());
+      setContent("");
+      await onUpdate();
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -65,7 +73,7 @@ export function CommentSection({
         />
         <button
           type="submit"
-          disabled={!content.trim()}
+          disabled={!content.trim() || busy}
           className="flex items-center justify-center rounded-xl bg-violet-600 px-4 text-white hover:bg-violet-700 disabled:opacity-40 transition-colors"
         >
           <Send className="h-4 w-4" />

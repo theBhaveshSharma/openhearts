@@ -8,22 +8,28 @@ import { useState } from "react";
 interface CreatePostModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (content: string, mood: Mood) => void;
+  onSubmit: (content: string, mood: Mood) => void | Promise<void>;
 }
 
 export function CreatePostModal({ open, onClose, onSubmit }: CreatePostModalProps) {
   const [content, setContent] = useState("");
   const [mood, setMood] = useState<Mood>("sad");
+  const [busy, setBusy] = useState(false);
 
   if (!open) return null;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!content.trim()) return;
-    onSubmit(content.trim(), mood);
-    setContent("");
-    setMood("sad");
-    onClose();
+    if (!content.trim() || busy) return;
+    setBusy(true);
+    try {
+      await onSubmit(content.trim(), mood);
+      setContent("");
+      setMood("sad");
+      onClose();
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -90,10 +96,10 @@ export function CreatePostModal({ open, onClose, onSubmit }: CreatePostModalProp
 
           <button
             type="submit"
-            disabled={!content.trim()}
+            disabled={!content.trim() || busy}
             className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white shadow-sm shadow-violet-200 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            Share with the community
+            {busy ? "Sharing..." : "Share with the community"}
           </button>
         </form>
       </div>

@@ -1,168 +1,217 @@
-import type { Comment, Mood, Post, SupportType, UserProfile } from "./types";
+import { generateAnonymousName } from "./anonymous";
+import { getSupabase, isSupabaseConfigured } from "./supabase";
+import type {
+  Comment,
+  DbComment,
+  DbPost,
+  Mood,
+  Post,
+  SupportType,
+  UserProfile,
+} from "./types";
 
-const POSTS_KEY = "openhearts_posts";
-const COMMENTS_KEY = "openhearts_comments";
-const USER_KEY = "openhearts_user";
-const SUPPORT_GIVEN_KEY = "openhearts_support_given";
+function mapPost(row: DbPost): Post {
+  return {
+    id: row.id,
+    author: row.author_name,
+    content: row.content,
+    mood: row.mood,
+    support: {
+      heart: row.heart_count,
+      hug: row.hug_count,
+      strength: row.strength_count,
+    },
+    createdAt: row.created_at,
+  };
+}
 
-function read<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
+function mapComment(row: DbComment): Comment {
+  return {
+    id: row.id,
+    postId: row.post_id,
+    author: row.author_name,
+    content: row.content,
+    createdAt: row.created_at,
+  };
+}
+
+export function isBackendReady(): boolean {
+  return isSupabaseConfigured;
+}
+
+export async function ensureUser(): Promise<UserProfile> {
+  const supabase = getSupabase();
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  let userId = session?.user?.id;
+
+  if (!userId) {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error || !data.user) {
+      throw new Error(
+        error?.message ??
+          "Anonymous sign-in failed. Enable Anonymous provider in Supabase Auth settings."
+      );
+    }
+    userId = data.user.id;
   }
-}
 
-function write<T>(key: string, value: T): void {
-  localStorage.setItem(key, JSON.stringify(value));
-}
+  const { data: existing, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, anonymous_name, created_at")
+    .eq("id", userId)
+    .maybeSingle();
 
-const SEED_POSTS: Post[] = [
-  {
-    id: "seed-1",
-    author: "QuietRiver742",
-    content:
-      "Had a really rough day at work. Felt invisible in every meeting. Just needed to say that out loud to someone who might understand.",
-    mood: "lonely",
-    support: { heart: 12, hug: 8, strength: 5 },
-    createdAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-  },
-  {
-    id: "seed-2",
-    author: "BraveHeart391",
-    content:
-      "Small win today: I actually got out of bed, made coffee, and went for a 10-minute walk. It doesn't sound like much but it felt huge.",
-    mood: "hopeful",
-    support: { heart: 24, hug: 6, strength: 18 },
-    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-  },
-  {
-    id: "seed-3",
-    author: "GentleSpirit558",
-    content:
-      "Does anyone else feel like they're pretending to be okay all the time? I'm exhausted from holding it together.",
-    mood: "overwhelmed",
-    support: { heart: 31, hug: 22, strength: 14 },
-    createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-  },
-  {
-    id: "seed-4",
-    author: "WarmBreeze204",
-    content:
-      "Grateful for this space. Reading other people's stories makes me feel less alone. Thank you all for being here.",
-    mood: "grateful",
-    support: { heart: 19, hug: 11, strength: 7 },
-    createdAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-  },
-];
-
-const SEED_COMMENTS: Comment[] = [
-  {
-    id: "c-1",
-    postId: "seed-1",
-    author: "KindSoul883",
-    content: "I hear you. Being overlooked hurts. Your feelings are completely valid.",
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-  },
-  {
-    id: "c-2",
-    postId: "seed-2",
-    author: "CalmWave117",
-    content: "That IS huge! Proud of you for taking that step. 🌱",
-    createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-  },
-];
-
-export function getUser(): UserProfile | null {
-  return read<UserProfile | null>(USER_KEY, null);
-}
-
-export function setUser(user: UserProfile): void {
-  write(USER_KEY, user);
-}
-
-export function getPosts(): Post[] {
-  const posts = read<Post[]>(POSTS_KEY, []);
-  if (posts.length === 0) {
-    write(POSTS_KEY, SEED_POSTS);
-    write(COMMENTS_KEY, SEED_COMMENTS);
-    return SEED_POSTS;
+  if (profileError) {
+    throw new Error(profileError.message);
   }
-  return posts.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+
+  if (existing) {
+    return {
+      id: existing.id,
+      anonymousName: existing.anonymous_name,
+      joinedAt: existing.created_at,
+    };
+  }
+
+  const anonymousName = generateAnonymousName();
+  const { data: created, error: createError } = await supabase
+    .from("profiles")
+    .insert({ id: userId, anonymous_name: anonymousName })
+    .select("id, anonymous_name, created_at")
+    .single();
+
+  if (createError || !created) {
+    throw new Error(createError?.message ?? "Could not create profile");
+  }
+
+  return {
+    id: created.id,
+    anonymousName: created.anonymous_name,
+    joinedAt: created.created_at,
+  };
 }
 
-export function getPost(id: string): Post | undefined {
-  return getPosts().find((p) => p.id === id);
+export async function getPosts(): Promise<Post[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data as DbPost[]).map(mapPost);
 }
 
-export function createPost(
-  author: string,
+export async function getPost(id: string): Promise<Post | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("posts")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data ? mapPost(data as DbPost) : null;
+}
+
+export async function createPost(
+  authorId: string,
+  authorName: string,
   content: string,
   mood: Mood
-): Post {
-  const post: Post = {
-    id: crypto.randomUUID(),
-    author,
-    content,
-    mood,
-    support: { heart: 0, hug: 0, strength: 0 },
-    createdAt: new Date().toISOString(),
-  };
-  const posts = [post, ...read<Post[]>(POSTS_KEY, SEED_POSTS)];
-  write(POSTS_KEY, posts);
-  return post;
+): Promise<Post> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("posts")
+    .insert({
+      author_id: authorId,
+      author_name: authorName,
+      content,
+      mood,
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Could not create post");
+  }
+
+  return mapPost(data as DbPost);
 }
 
-export function getComments(postId: string): Comment[] {
-  const comments = read<Comment[]>(COMMENTS_KEY, SEED_COMMENTS);
-  return comments
-    .filter((c) => c.postId === postId)
-    .sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+export async function getComments(postId: string): Promise<Comment[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("comments")
+    .select("*")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data as DbComment[]).map(mapComment);
 }
 
-export function addComment(
+export async function addComment(
   postId: string,
-  author: string,
+  authorId: string,
+  authorName: string,
   content: string
-): Comment {
-  const comment: Comment = {
-    id: crypto.randomUUID(),
-    postId,
-    author,
-    content,
-    createdAt: new Date().toISOString(),
-  };
-  const comments = [...read<Comment[]>(COMMENTS_KEY, SEED_COMMENTS), comment];
-  write(COMMENTS_KEY, comments);
-  return comment;
+): Promise<Comment> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("comments")
+    .insert({
+      post_id: postId,
+      author_id: authorId,
+      author_name: authorName,
+      content,
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Could not add comment");
+  }
+
+  return mapComment(data as DbComment);
 }
 
-export function hasGivenSupport(postId: string, type: SupportType): boolean {
-  const given = read<Record<string, SupportType[]>>(SUPPORT_GIVEN_KEY, {});
-  return given[postId]?.includes(type) ?? false;
+export async function getGivenSupport(
+  postId: string,
+  userId: string
+): Promise<SupportType[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("support_reactions")
+    .select("type")
+    .eq("post_id", postId)
+    .eq("user_id", userId);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => row.type as SupportType);
 }
 
-export function giveSupport(postId: string, type: SupportType): boolean {
-  const given = read<Record<string, SupportType[]>>(SUPPORT_GIVEN_KEY, {});
-  if (given[postId]?.includes(type)) return false;
+export async function giveSupport(
+  postId: string,
+  userId: string,
+  type: SupportType
+): Promise<boolean> {
+  const supabase = getSupabase();
+  const { error } = await supabase.from("support_reactions").insert({
+    post_id: postId,
+    user_id: userId,
+    type,
+  });
 
-  given[postId] = [...(given[postId] ?? []), type];
-  write(SUPPORT_GIVEN_KEY, given);
+  if (error) {
+    if (error.code === "23505") return false;
+    throw new Error(error.message);
+  }
 
-  const posts = read<Post[]>(POSTS_KEY, SEED_POSTS);
-  const updated = posts.map((p) =>
-    p.id === postId
-      ? { ...p, support: { ...p.support, [type]: p.support[type] + 1 } }
-      : p
-  );
-  write(POSTS_KEY, updated);
   return true;
 }
 

@@ -28,6 +28,7 @@ export interface Post {
 }
 
 export interface UserProfile {
+  id: string;
   anonymousName: string;
   joinedAt: string;
 }
@@ -54,3 +55,24 @@ export const SUPPORT_CONFIG: Record<
   hug: { label: "Virtual hug", emoji: "🤗" },
   strength: { label: "You've got this", emoji: "💪" },
 };
+
+export interface DbPost {
+  id: string;
+  author_id: string | null;
+  author_name: string;
+  content: string;
+  mood: Mood;
+  heart_count: number;
+  hug_count: number;
+  strength_count: number;
+  created_at: string;
+}
+
+export interface DbComment {
+  id: string;
+  post_id: string;
+  author_id: string | null;
+  author_name: string;
+  content: string;
+  created_at: string;
+}

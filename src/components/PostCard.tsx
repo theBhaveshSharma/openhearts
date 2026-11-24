@@ -9,10 +9,11 @@ import Link from "next/link";
 
 interface PostCardProps {
   post: Post;
-  onUpdate: () => void;
+  userId: string;
+  onUpdate: () => void | Promise<void>;
 }
 
-export function PostCard({ post, onUpdate }: PostCardProps) {
+export function PostCard({ post, userId, onUpdate }: PostCardProps) {
   const mood = MOOD_CONFIG[post.mood];
 
   return (
@@ -39,7 +40,12 @@ export function PostCard({ post, onUpdate }: PostCardProps) {
       </p>
 
       <div className="flex items-center justify-between gap-3 pt-3 border-t border-violet-50">
-        <SupportButtons postId={post.id} support={post.support} onUpdate={onUpdate} />
+        <SupportButtons
+          postId={post.id}
+          userId={userId}
+          support={post.support}
+          onUpdate={onUpdate}
+        />
         <Link
           href={`/post/?id=${post.id}`}
           className="flex items-center gap-1 text-sm text-violet-500 hover:text-violet-700 transition-colors shrink-0"

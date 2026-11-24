@@ -6,102 +6,89 @@ A peer support social app where people can anonymously share their thoughts, fee
 
 ## Features
 
-- **Anonymous sharing** — Auto-generated usernames, no account required
-- **Mood-tagged posts** — Share how you're feeling (anxious, sad, lonely, hopeful, and more)
-- **Peer support** — React with love, virtual hugs, and encouragement
-- **Replies** — Leave kind words on posts that resonate with you
-- **Crisis resources** — Prominent disclaimers and links to 988, Crisis Text Line, and international helplines
-- **Mood filtering** — Browse the feed by how people are feeling
+- **Anonymous sharing** — Auto-generated usernames via Supabase Anonymous Auth
+- **Shared database** — Posts, replies, and support reactions stored in Supabase (Postgres)
+- **Mood-tagged posts** — Anxious, sad, lonely, hopeful, and more
+- **Peer support** — Love, virtual hugs, and encouragement reactions
+- **Crisis resources** — 988, Crisis Text Line, and international helplines
+- **Mood filtering** — Browse the feed by feeling
 
 ## Tech stack
 
-- [Next.js 16](https://nextjs.org/) (App Router)
-- [React 19](https://react.dev/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS 4](https://tailwindcss.com/)
-- [Lucide React](https://lucide.dev/) icons
-- Browser `localStorage` for MVP data persistence
+- [Next.js 16](https://nextjs.org/) (App Router, static export for GitHub Pages)
+- [React 19](https://react.dev/) + TypeScript + Tailwind CSS 4
+- [Supabase](https://supabase.com/) — Postgres database + Anonymous Auth + Row Level Security
+
+## Supabase setup (required)
+
+1. Create a free project at [supabase.com](https://supabase.com/dashboard)
+2. Go to **Authentication → Providers → Anonymous** and **enable** it
+3. Open **SQL Editor**, paste everything from [`supabase/schema.sql`](supabase/schema.sql), and run it
+4. Copy keys from **Project Settings → API**
+5. Create `.env.local` in the project root:
+
+```bash
+cp .env.example .env.local
+```
+
+Fill in:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+```
+
+6. For GitHub Pages, add the same two values as repository secrets:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`  
+   Then re-run the **Deploy to GitHub Pages** workflow.
 
 ## Getting started
-
-### Prerequisites
-
-- Node.js 20+
-- npm
-
-### Install and run
 
 ```bash
 git clone https://github.com/theBhaveshSharma/openhearts.git
 cd openhearts
 npm install
+cp .env.example .env.local   # then add your Supabase keys
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) (or 3001 if 3000 is taken).
 
 ### Scripts
 
-| Command        | Description              |
-| -------------- | ------------------------ |
-| `npm run dev`  | Start development server |
-| `npm run build`| Create production build  |
-| `npm run start`| Run production server    |
-| `npm run lint` | Run ESLint               |
+| Command         | Description              |
+| --------------- | ------------------------ |
+| `npm run dev`   | Start development server |
+| `npm run build` | Create production build  |
+| `npm run start` | Run production server    |
+| `npm run lint`  | Run ESLint               |
 
 ## Project structure
 
 ```
 src/
-├── app/
-│   ├── page.tsx          # Landing page
-│   ├── feed/page.tsx     # Community feed
-│   ├── post/[id]/page.tsx# Post detail & replies
-│   └── resources/page.tsx# Crisis resources
-├── components/           # UI components
+├── app/                 # Pages (landing, feed, post, resources)
+├── components/          # UI components
 └── lib/
-    ├── types.ts          # Shared types
-    ├── store.ts          # Local storage layer
-    ├── anonymous.ts      # Anonymous name generator
-    └── crisis.ts         # Crisis resource data
+    ├── supabase.ts      # Supabase client
+    ├── store.ts         # Database operations
+    ├── types.ts         # Shared types
+    ├── anonymous.ts     # Anonymous name generator
+    └── crisis.ts        # Crisis resource data
+supabase/
+└── schema.sql           # Tables, RLS policies, seed posts
 ```
 
 ## Live site
 
-Hosted on GitHub Pages:
-
 **https://thebhaveshsharma.github.io/openhearts/**
 
-## Deployment
-
-Every push to `main` builds a static export and deploys via GitHub Actions (`.github/workflows/deploy.yml`).
-
-### Enable GitHub Pages (one-time)
-
-1. Open [repo Settings → Pages](https://github.com/theBhaveshSharma/openhearts/settings/pages)
-2. Under **Build and deployment → Source**, choose **Deploy from a branch**
-3. Set **Branch** to `gh-pages` / `/ (root)` and save
-4. Wait for the **Deploy to GitHub Pages** workflow to finish on `main`
-
-### Local production build (same as Pages)
-
-```bash
-GITHUB_PAGES=true npm run build
-npx serve out
-```
-
-You can also deploy the same Next.js app on [Vercel](https://vercel.com) if you prefer a server runtime.
+Pages deploys from the `gh-pages` branch. Every push to `main` rebuilds via GitHub Actions.
 
 ## Important note
 
-This is an MVP built for learning and prototyping. A production mental health peer support platform would need:
-
-- A real backend and database
-- User authentication and moderation
-- Content reporting and safety tooling
-- Crisis keyword detection
-- Legal review and community guidelines
-- Professional oversight for safety workflows
+This is still an early product. A production mental-health peer support platform would also need moderation, reporting, crisis keyword detection, legal review, and professional safety workflows.
 
 ## License
 

@@ -3,49 +3,69 @@
 import { CommentSection } from "@/components/CommentSection";
 import { CrisisBanner } from "@/components/CrisisBanner";
 import { Header } from "@/components/Header";
+import { SetupBanner } from "@/components/SetupBanner";
 import { SupportButtons } from "@/components/SupportButtons";
-import { generateAnonymousName } from "@/lib/anonymous";
 import {
+  ensureUser,
   formatTimeAgo,
   getComments,
   getPost,
-  getUser,
-  setUser,
+  isBackendReady,
 } from "@/lib/store";
 import { MOOD_CONFIG } from "@/lib/types";
+import type { Comment, Post, UserProfile } from "@/lib/types";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 function PostContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id") ?? "";
   const [ready, setReady] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [post, setPost] = useState<ReturnType<typeof getPost>>(undefined);
-  const [comments, setComments] = useState<ReturnType<typeof getComments>>([]);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [post, setPost] = useState<Post | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let user = getUser();
-    if (!user) {
-      user = {
-        anonymousName: generateAnonymousName(),
-        joinedAt: new Date().toISOString(),
-      };
-      setUser(user);
-    }
-    setUserName(user.anonymousName);
-    setPost(id ? getPost(id) : undefined);
-    setComments(id ? getComments(id) : []);
-    setReady(true);
+  const refresh = useCallback(async () => {
+    if (!id || !isBackendReady()) return;
+    const [nextPost, nextComments] = await Promise.all([
+      getPost(id),
+      getComments(id),
+    ]);
+    setPost(nextPost);
+    setComments(nextComments);
   }, [id]);
 
-  function refresh() {
-    if (!id) return;
-    setPost(getPost(id));
-    setComments(getComments(id));
-  }
+  useEffect(() => {
+    let cancelled = false;
+
+    async function boot() {
+      if (!isBackendReady()) {
+        setReady(true);
+        return;
+      }
+
+      try {
+        const profile = await ensureUser();
+        if (cancelled) return;
+        setUser(profile);
+        await refresh();
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load post");
+        }
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    }
+
+    boot();
+    return () => {
+      cancelled = true;
+    };
+  }, [refresh]);
 
   if (!ready) {
     return (
@@ -55,7 +75,29 @@ function PostContent() {
     );
   }
 
-  if (!post) {
+  if (!isBackendReady()) {
+    return (
+      <div className="mx-auto w-full max-w-2xl px-4 py-10 space-y-4">
+        <SetupBanner />
+        <Link href="/feed/" className="text-sm text-violet-600 underline">
+          Back to feed
+        </Link>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col flex-1 items-center justify-center min-h-screen gap-4 px-4">
+        <p className="text-rose-700 text-center">{error}</p>
+        <Link href="/feed/" className="text-sm font-medium text-violet-600 underline">
+          Back to feed
+        </Link>
+      </div>
+    );
+  }
+
+  if (!post || !user) {
     return (
       <div className="flex flex-col flex-1 items-center justify-center min-h-screen gap-4">
         <p className="text-violet-600">Post not found.</p>
@@ -70,7 +112,7 @@ function PostContent() {
 
   return (
     <div className="flex flex-col flex-1 bg-gradient-to-b from-violet-50/50 to-white min-h-screen">
-      <Header userName={userName} />
+      <Header userName={user.anonymousName} />
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 space-y-5">
         <Link
@@ -105,13 +147,19 @@ function PostContent() {
             {post.content}
           </p>
 
-          <SupportButtons postId={post.id} support={post.support} onUpdate={refresh} />
+          <SupportButtons
+            postId={post.id}
+            userId={user.id}
+            support={post.support}
+            onUpdate={refresh}
+          />
         </article>
 
         <div className="rounded-2xl bg-white border border-violet-100 p-6 shadow-sm">
           <CommentSection
             postId={post.id}
-            authorName={userName}
+            authorId={user.id}
+            authorName={user.anonymousName}
             comments={comments}
             onUpdate={refresh}
           />
