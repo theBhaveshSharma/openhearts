@@ -79,8 +79,9 @@ Every push to `main` builds a static export and deploys via GitHub Actions (`.gi
 ### Enable GitHub Pages (one-time)
 
 1. Open [repo Settings → Pages](https://github.com/theBhaveshSharma/openhearts/settings/pages)
-2. Under **Build and deployment → Source**, choose **GitHub Actions**
-3. Push to `main` (or re-run the **Deploy to GitHub Pages** workflow)
+2. Under **Build and deployment → Source**, choose **Deploy from a branch**
+3. Set **Branch** to `gh-pages` / `/ (root)` and save
+4. Wait for the **Deploy to GitHub Pages** workflow to finish on `main`
 
 ### Local production build (same as Pages)
 
